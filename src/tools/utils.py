@@ -213,4 +213,3 @@ def save_plot_score(filename, z, y, title, show=False):
     # Put the legend out of the figure
     plt.clf()
 
-

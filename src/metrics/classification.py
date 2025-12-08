@@ -20,11 +20,12 @@ from sklearn.metrics import roc_auc_score, roc_curve, auc
 from sklearn.preprocessing import OneHotEncoder
 
 def roc_auc_score_multiclass(y_true, y_pred, ohe, average = "macro"):
-    # Converti y_true in array con dtype esplicito
-    y_true_array = np.array(y_true, dtype=object).reshape(-1, 1)
-    y_true = ohe.transform(y_true_array)
-    
-    roc_auc = roc_auc_score(y_true, y_pred, average = average, multi_class='ovo')
+    y_true = np.asarray(y_true, dtype=int).reshape(-1, 1)
+    classes = np.asarray(ohe.categories_[0], dtype=int)
+    y_true_bin = (y_true == classes.reshape(1, -1)).astype(float)
+
+    roc_auc = roc_auc_score(y_true_bin, y_pred, average = average, multi_class='ovo')
+
     return roc_auc
 
 def multi_classification_evaluation(y_true, y_pred, y_pred_proba, average='weighted', save_confusion=False, filename=None, plot_roc=False, ohe=None):

@@ -204,6 +204,9 @@ class CustOMICS(nn.Module):
     def _train_loop(self, x, labels, os_time, os_event):
         for i in range(len(x)):
             x[i] = x[i].to(self.device)
+        labels = labels.long().to(self.device)
+        os_time = os_time.float().to(self.device)
+        os_event = os_event.float().to(self.device)
         # If we don't disjoint the autoencoder's architecture 
         loss = 0
         self.optimizer.zero_grad()
@@ -234,7 +237,8 @@ class CustOMICS(nn.Module):
         encoded_clinical_df = clinical_df.copy()
         self.label_encoder = LabelEncoder().fit(encoded_clinical_df.loc[:, label].values)
         encoded_clinical_df.loc[:, label] = self.label_encoder.transform(encoded_clinical_df.loc[:, label].values)
-        self.one_hot_encoder = OneHotEncoder(sparse=False).fit(encoded_clinical_df.loc[:, label].values.reshape(-1,1))
+        labels_int = encoded_clinical_df.loc[:, label].values.astype(int).reshape(-1, 1)
+        self.one_hot_encoder = OneHotEncoder(sparse=False, dtype=float).fit(labels_int)
 
         kwargs = {'num_workers': 2, 'pin_memory': True} if self.device.type == "cuda" else {}
 
@@ -296,10 +300,12 @@ class CustOMICS(nn.Module):
 
 
     def plot_representation(self, omics_df, clinical_df, labels, filename, title, show=True):
+        # labels: nome della colonna (es. 'PAM50')
         labels_df = clinical_df.loc[:, labels]
         lt_samples = get_common_samples([df for df in omics_df.values()] + [clinical_df])
-        z = self.get_latent_representation(omics_df=omics_df)
-        save_plot_score(filename, z, labels_df[lt_samples].values, title, show=True)
+        z = self.get_latent_representation({k: v.loc[lt_samples] for k, v in omics_df.items()})
+        labels_aligned = labels_df[lt_samples].values
+        save_plot_score(filename, z, labels_aligned, title, show=show)
 
 
     def source_predict(self, expr_df, source):
@@ -342,29 +348,34 @@ class CustOMICS(nn.Module):
         c_index = []
         with torch.no_grad():
             for batch_idx, (x, labels, os_time, os_event) in enumerate(test_loader):
+                for i in range(len(x)):
+                    x[i] = x[i].to(self.device)
+                labels = labels.long().to(self.device)
+                os_time = os_time.float().to(self.device)
+                os_event = os_event.float().to(self.device)
                 z, loss  = self._compute_loss(x)
                 if task == 'survival':
                     predicted_survival_hazard = self.survival_predictor(z)
                     predicted_survival_hazard = predicted_survival_hazard.cpu().detach().numpy().reshape(-1, 1)
-                    os_time = os_time.cpu().detach().numpy()
-                    os_event = os_event.cpu().detach().numpy()
-                    c_index.append(CIndex_lifeline(predicted_survival_hazard, os_event, os_time))
-                    return np.mean(c_index)
+                    os_time_np = os_time.cpu().detach().numpy()
+                    os_event_np = os_event.cpu().detach().numpy()
+                    c_index.append(CIndex_lifeline(predicted_survival_hazard, os_event_np, os_time_np))
                 elif task == 'classification':
-                    svc_model = SVC()
-                    z = self.get_latent_representation(x, tensor=True)
-                    svc_model.fit(z.cpu().detach().numpy(), labels.cpu().detach().numpy())
-                    y_pred_proba = svc_model.predict_proba()
-                    y_pred = torch.argmax(y_pred_proba, dim=1).cpu().detach().numpy()
-                    y_pred_proba = y_pred_proba.cpu().detach().numpy()
-                    y_true = labels.cpu().detach().numpy()
-                    classif_metrics.append(multi_classification_evaluation(y_true, y_pred, y_pred_proba, ohe=self.one_hot_encoder))
+                    svc_model = SVC(probability=True)
+                    z_np = self.get_latent_representation(x, tensor=True)
+                    labels_np = labels.cpu().detach().numpy().astype(int)
+                    svc_model.fit(z_np, labels_np)
+                    y_pred_proba = svc_model.predict_proba(z_np).astype(float)
+                    y_pred = np.argmax(y_pred_proba, axis=1)
+                    classif_metrics.append(multi_classification_evaluation(labels_np, y_pred, y_pred_proba, ohe=self.one_hot_encoder))
                     if plot_roc:
-                        plot_roc_multiclass(y_test=y_true, y_pred_proba=y_pred_proba, filename='test', n_classes=self.num_classes,
+                        plot_roc_multiclass(y_test=labels_np, y_pred_proba=y_pred_proba, filename='test', n_classes=self.num_classes,
                                             var_names=np.unique(clinical_df.loc[:, label].values.tolist()))
 
-                
-                    return classif_metrics
+        if task == 'survival':
+            return np.mean(c_index) if c_index else None
+        elif task == 'classification':
+            return classif_metrics
 
 
 
@@ -386,26 +397,32 @@ class CustOMICS(nn.Module):
         c_index = []
         with torch.no_grad():
             for batch_idx, (x, labels, os_time, os_event) in enumerate(test_loader):
+                for i in range(len(x)):
+                    x[i] = x[i].to(self.device)
+                labels = labels.long().to(self.device)
+                os_time = os_time.float().to(self.device)
+                os_event = os_event.float().to(self.device)
                 z, loss  = self._compute_loss(x)
                 if task == 'survival':
                     predicted_survival_hazard = self.survival_predictor(z)
                     predicted_survival_hazard = predicted_survival_hazard.cpu().detach().numpy().reshape(-1, 1)
-                    os_time = os_time.cpu().detach().numpy()
-                    os_event = os_event.cpu().detach().numpy()
-                    c_index.append(CIndex_lifeline(predicted_survival_hazard, os_event, os_time))
-                    return np.mean(c_index)
+                    os_time_np = os_time.cpu().detach().numpy()
+                    os_event_np = os_event.cpu().detach().numpy()
+                    c_index.append(CIndex_lifeline(predicted_survival_hazard, os_event_np, os_time_np))
                 elif task == 'classification':
-                    y_pred_proba = self.classifier(z)
-                    y_pred = torch.argmax(y_pred_proba, dim=1).cpu().detach().numpy()
-                    y_pred_proba = y_pred_proba.cpu().detach().numpy()
-                    y_true = labels.cpu().detach().numpy()
+                    logits = self.classifier(z)
+                    y_pred_proba = torch.softmax(logits, dim=1).cpu().detach().numpy().astype(float)
+                    y_pred = np.argmax(y_pred_proba, axis=1)
+                    y_true = labels.cpu().detach().numpy().astype(int)
                     classif_metrics.append(multi_classification_evaluation(y_true, y_pred, y_pred_proba, ohe=self.one_hot_encoder))
                     if plot_roc:
                         plot_roc_multiclass(y_test=y_true, y_pred_proba=y_pred_proba, filename='test', n_classes=self.num_classes,
                                             var_names=np.unique(clinical_df.loc[:, label].values.tolist()))
 
-                
-                    return classif_metrics
+        if task == 'survival':
+            return np.mean(c_index) if c_index else None
+        elif task == 'classification':
+            return classif_metrics
 
 
 
@@ -464,11 +481,18 @@ class CustOMICS(nn.Module):
         background = addToTensor(expr_selection=normal_expr, device=device)
         male_expr_tensor = addToTensor(expr_selection=tumour_expr, device=device)
 
-
         e = shap.DeepExplainer(ModelWrapper(self, source=source), background)
         shap_values_female = e.shap_values(male_expr_tensor, ranked_outputs=None)
-
-        shap.summary_plot(shap_values_female[0],features=tumour_expr,feature_names=list(tumour_expr.columns), show=False, plot_type="violin", max_display=10, plot_size=[4,6])
+        # use a magenta/blue colormap similar to the reference plot
+        cmap = plt.get_cmap("coolwarm")
+        shap.summary_plot(
+            shap_values_female[0],
+            features=tumour_expr,
+            feature_names=list(tumour_expr.columns),
+            show=False,
+            plot_type="violin",
+            max_display=10,
+            plot_size=[10,8])
         plt.savefig('shap_{}_{}.png'.format(source, subtype), bbox_inches='tight')
         if show:
             plt.show()

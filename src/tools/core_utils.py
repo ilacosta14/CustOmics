@@ -62,5 +62,5 @@ def train(task, cohorts, sources, split, device, num_classes=4,
     if task == 'survival':
         print(model.predict_survival(omics_test))
         model.stratify(omics_df=omics_train, clinical_df=clinical_df,
-                       event='status', surv_time='overall_survival')
+                       event='status', surv_time='days')
     return metric
