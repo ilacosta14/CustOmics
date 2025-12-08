@@ -14,12 +14,15 @@ def prepare_dataset(cohort, sources, n_split, save_split=True, ruche=False, labe
         clinical_df.loc[:, 'tumor_type'] = le.transform(clinical_df.loc[:, 'tumor_type'].values)
         ohe = OneHotEncoder(sparse=False).fit(clinical_df.loc[:, 'tumor_type'].values.reshape(-1,1))
     else:
-        if cohort == 'TCGA-BRCA':
-            omics_df, clinical_df , lt_samples = read_data(cohort, sources, label)
-        else:
-            omics_df, clinical_df , lt_samples = read_data(cohort, sources, label)
-            ohe = None
-            le = None
+        # if cohort == 'TCGA-BRCA':
+        #     omics_df, clinical_df , lt_samples = read_data(cohort, sources, label)
+        #     le = LabelEncoder().fit(clinical_df.loc[:, label].values)
+        #     clinical_df.loc[:, label] = le.transform(clinical_df.loc[:, label].values)
+        #     ohe = OneHotEncoder(sparse=False).fit(clinical_df.loc[:, label].values.reshape(-1,1))
+        # else:
+        omics_df, clinical_df , lt_samples = read_data(cohort, sources, label)
+        ohe = None
+        le = None
     if save_split:
         save_splits(lt_samples, cohort)
     samples_train, samples_val, samples_test = get_splits(cohort, n_split)

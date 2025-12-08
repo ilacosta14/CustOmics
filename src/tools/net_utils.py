@@ -48,7 +48,7 @@ class FullyConnectedLayer(nn.Module):
             elif activation_name.lower() == 'sigmoid':
                 self.fc_block.append(nn.Sigmoid())
             elif activation_name.lower() == 'leakyrelu':
-                self.fc_block.append(nn.LeakyReLU(negative_slope=leaky_slope, inplace=True))
+                self.fc_block.append(nn.LeakyReLU(negative_slope=leaky_slope, inplace=False))
             elif activation_name.lower() == 'tanh':
                 self.fc_block.append(nn.Tanh())
             elif activation_name.lower() == 'softmax':

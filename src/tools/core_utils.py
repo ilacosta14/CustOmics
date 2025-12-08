@@ -17,12 +17,15 @@ def train(task, cohorts, sources, split, device, num_classes=4,
         surv_time = 'OS.time'
         event = 'OS'
     else:
-        label = 'pathology_T_stage'
+        label = 'PAM50'
         event = 'status'
-        surv_time = 'overall_survival'
+        surv_time = 'days'
 
     omics_df, clinical_df, omics_train, omics_val, omics_test, lt_samples, x_dim = prepare_dataset(
         cohorts, sources, split, label)
+    if label in clinical_df.columns:
+        phenotype = clinical_df.loc[lt_samples, :]
+        print("Subtype counts in lt_samples:", phenotype[label].value_counts().to_dict())
     print(clinical_df[label].values)
     num_classes = len(np.unique(clinical_df[label].values))
 

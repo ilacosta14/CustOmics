@@ -31,25 +31,28 @@ def get_sub_omics_df(omics_df, lt_samples):
 
 def read_data(cohort, omic_sources, label):
     omics_df = {}
-    cnv_path = '../TCGA/{}/Omics/CNV/{}.gistic.tsv'.format(cohort,cohort)
-    rna_path = '../TCGA/{}/Omics/RNAseq/{}.htseq_fpkm.tsv'.format(cohort,cohort)
-    methyl_path = '../TCGA/{}/Omics/Methyl450/{}.methylation450.tsv'.format(cohort,cohort)
-    clinical_path = '../TCGA/{}/Clinical/{}.GDC_phenotype.tsv'.format(cohort,cohort)
+    cnv_path = 'TCGA/{}/{}_CNV.csv'.format(cohort,cohort)
+    rna_path = 'TCGA/{}/{}_mRNA.csv'.format(cohort,cohort)
+    methyl_path = 'TCGA/{}/{}_Methy.csv'.format(cohort,cohort)
+    clinical_path = 'TCGA/{}/Clinical_Data.csv'.format(cohort,cohort)
     if 'CNV' in omic_sources:
-        omics_df['CNV'] = pd.read_csv(cnv_path, sep='\t', index_col=0).T.dropna(axis=1)
+        omics_df['CNV'] = pd.read_csv(cnv_path, sep=',', index_col=0).T.dropna(axis=1)
+        omics_df['CNV'].index = omics_df['CNV'].index.str.replace('.', '-', regex=False)
     if 'RNAseq' in omic_sources:
-        omics_df['RNAseq'] = pd.read_csv(rna_path, sep='\t', index_col=0).T.dropna(axis=1)
+        omics_df['RNAseq'] = pd.read_csv(rna_path, sep=',', index_col=0).T.dropna(axis=1)
+        omics_df['RNAseq'].index = omics_df['RNAseq'].index.str.replace('.', '-', regex=False)
     if 'methyl' in omic_sources:
-        omics_df['methyl'] = pd.read_csv(methyl_path, sep='\t', index_col=0).T.dropna(axis=1)
-    clinical_df = pd.read_csv(clinical_path, sep='\t', index_col=0).T
-    clinical_df = clinical_df[clinical_df['overall_survival'].notna()]
+        omics_df['methyl'] = pd.read_csv(methyl_path, sep=',', index_col=0).T.dropna(axis=1)
+        omics_df['methyl'].index = omics_df['methyl'].index.str.replace('.', '-', regex=False)
+    clinical_df = pd.read_csv(clinical_path, sep=',', index_col=0)
+    clinical_df = clinical_df[clinical_df['status'].notna()]
+    clinical_df = clinical_df[clinical_df['days'].notna()]
     if cohort == 'TCGA-BRCA':
         clinical_df = clinical_df[clinical_df[label].notna()]
     lt_samples = get_common_samples([df for df in omics_df.values()] + [clinical_df])
     for source in omics_df.keys():
         omics_df[source] = omics_df[source].loc[lt_samples, :]
     return omics_df, clinical_df.loc[lt_samples,:], lt_samples
-
     
 
 
