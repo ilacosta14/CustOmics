@@ -41,6 +41,9 @@ def read_data(cohort, omic_sources, label):
     if 'RNAseq' in omic_sources:
         omics_df['RNAseq'] = pd.read_csv(rna_path, sep=',', index_col=0).T.dropna(axis=1)
         omics_df['RNAseq'].index = omics_df['RNAseq'].index.str.replace('.', '-', regex=False)
+    if 'miRNA' in omic_sources:
+        omics_df['miRNA'] = pd.read_csv(rna_path, sep=',', index_col=0).T.dropna(axis=1)
+        omics_df['miRNA'].index = omics_df['miRNA'].index.str.replace('.', '-', regex=False)
     if 'methyl' in omic_sources:
         omics_df['methyl'] = pd.read_csv(methyl_path, sep=',', index_col=0).T.dropna(axis=1)
         omics_df['methyl'].index = omics_df['methyl'].index.str.replace('.', '-', regex=False)

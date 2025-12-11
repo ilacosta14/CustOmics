@@ -315,8 +315,10 @@ class CustOMICS(nn.Module):
             z = self.lt_encoders[0](tensor_expr)
         elif source == 'RNAseq' or source == 'gene_exp':
             z = self.lt_encoders[1](tensor_expr)
-        elif source == 'methyl':
+        elif source == 'miRNA':
             z = self.lt_encoders[2](tensor_expr)
+        elif source == 'methyl':
+            z = self.lt_encoders[3](tensor_expr)
         y_pred_proba = self.classifier(z)
         return y_pred_proba
 
@@ -484,15 +486,15 @@ class CustOMICS(nn.Module):
         e = shap.DeepExplainer(ModelWrapper(self, source=source), background)
         shap_values_female = e.shap_values(male_expr_tensor, ranked_outputs=None)
         # use a magenta/blue colormap similar to the reference plot
-        cmap = plt.get_cmap("coolwarm")
+        # cmap = plt.get_cmap("coolwarm")
         shap.summary_plot(
             shap_values_female[0],
             features=tumour_expr,
             feature_names=list(tumour_expr.columns),
-            show=False,
+            show=True,
             plot_type="violin",
-            max_display=10,
-            plot_size=[10,8])
+            max_display=10)
+
         plt.savefig('shap_{}_{}.png'.format(source, subtype), bbox_inches='tight')
         if show:
             plt.show()

@@ -58,7 +58,7 @@ def train(task, cohorts, sources, split, device, num_classes=4,
                               'plot_representation', 'Representation of the latent space')
     if cohorts != 'PANCAN':
         model.explain(lt_samples, omics_df, clinical_df,
-                      'RNAseq', 'Her2', label, device)
+                      'RNAseq', 'Her2', label, device,show = True)
     if task == 'survival':
         print(model.predict_survival(omics_test))
         model.stratify(omics_df=omics_train, clinical_df=clinical_df,

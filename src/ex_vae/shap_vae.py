@@ -113,6 +113,6 @@ def explain_vae(sample_id, vae_model, expr_df, clinical_df, source, subtype, dev
     print("calculating shap values")
     shap_values_female = e.shap_values(male_expr_tensor, ranked_outputs=None)
 
-    shap.summary_plot(shap_values_female[0],features=tumour_expr,feature_names=list(tumour_expr.columns), show=False, plot_type="violin", max_display=10, plot_size=[4,6])
+    shap.summary_plot(shap_values_female[0],features=tumour_expr,feature_names=list(tumour_expr.columns), show=False, plot_type="violin", max_display=20, plot_size=[4,6])
     plt.savefig('shap_{}_{}.png'.format(source, subtype), bbox_inches='tight')
     print("calculated shap values")

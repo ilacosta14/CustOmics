@@ -33,7 +33,7 @@ parser.add_argument('-sh', '--survival_dim', help='list of neurones for the surv
 parser.add_argument('-lc', '--lambda_classif', help='weight of the classification loss', type=float, default=5)
 parser.add_argument('-ls', '--lambda_survival', help='weight of the survival loss', type=float, default=0)
 
-parser.add_argument('-xp', '--explain', help='choose if you want to explain the results or not', type=bool, default=False)
+parser.add_argument('-xp', '--explain', help='choose if you want to explain the results or not', type=bool, default=True)
 parser.add_argument('-cxp', '--explained_class', help='class to explain', type=str, default='Her2')
 parser.add_argument('-sxp', '--explained_source', help='source to explain', type=str, default='RNAseq')
 
